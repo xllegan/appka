@@ -1,7 +1,27 @@
-import uvicorn
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from .database import engine, Base
+from .auth import router as auth_router
 
-app = FastAPI()
+app = FastAPI(
+    title="'Appka' API",
+    description="This API currently for user authentication and authorization",
+    version="1.0.0"
+)
 
-if __name__ == "__main__":
-    uvicorn.run("main:app")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth_router, prefix="/auth")
+
+@asynccontextmanager
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
