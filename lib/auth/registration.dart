@@ -1,6 +1,7 @@
 import 'package:app/auth/login.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../search.dart';
 
 final TextEditingController nameController = TextEditingController();
 final TextEditingController passwordController = TextEditingController();
@@ -8,6 +9,40 @@ final TextEditingController repeatPasswordController = TextEditingController();
 
 class RegistrationScreen extends StatelessWidget {
   const RegistrationScreen({super.key});
+
+  Future<bool> _registerUser(BuildContext context) async {
+    final username = nameController.text;
+    final password = passwordController.text;
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://10.0.2.2:8000/auth/register'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {
+          'username': nameController.text,
+          'password': passwordController.text,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('OK')));
+        return true;
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${response.body}')));
+        return false;
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Connection error: $e')));
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,17 +129,9 @@ class RegistrationScreen extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(passwordController.text)),
-                    );
                     if (passwordController.text ==
                         repeatPasswordController.text) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SearchScreen(),
-                        ),
-                      );
+                      _registerUser(context);
                     }
                   },
                   child: const Text('Create'),
