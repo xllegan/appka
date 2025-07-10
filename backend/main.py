@@ -2,8 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .database import engine, Base
-from .auth import router as auth_router
+from backend.database import engine, Base
+from backend.auth import router as auth_router
 
 app = FastAPI(
     title="'Appka' API",
