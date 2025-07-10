@@ -9,3 +9,9 @@ class InvalidSecretKey(Exception):
 
 class InvalidKeyType(Exception):
     """You indicated wrong key type"""
+
+class UserAlreadyExists(Exception):
+    """User with such data already exists in DB"""
+
+class UserNotFound(Exception):
+    """User with some id not found"""
