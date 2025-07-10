@@ -10,6 +10,6 @@ class MainScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: Scaffold(body: const LoginScreen()));
+    return MaterialApp(home: Scaffold(body: LoginScreen()));
   }
 }

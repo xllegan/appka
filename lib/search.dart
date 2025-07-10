@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-final TextEditingController inputController = TextEditingController();
 String _response = "";
 
 class SearchScreen extends StatefulWidget {
@@ -12,6 +11,7 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  final TextEditingController inputController = TextEditingController();
   bool _isLoading = false;
 
   void fetchResponce(String text) async {
