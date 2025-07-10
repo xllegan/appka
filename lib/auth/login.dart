@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../search.dart';
 import 'registration.dart';
 
@@ -7,6 +9,37 @@ final TextEditingController passwordController = TextEditingController();
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
+
+  Future<bool> _loginUser(BuildContext context) async {
+    final username = nameController.text;
+    final password = passwordController.text;
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://10.0.0.2:8000/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': username, 'password': password}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('OK')));
+        return true;
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${response.body}')));
+        return false;
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Connection error: $e')));
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,15 +112,9 @@ class LoginScreen extends StatelessWidget {
                       const BorderSide(color: Colors.black, width: 0.8),
                     ),
                   ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(passwordController.text)),
-                    );
-                    if (authCheck(
-                      nameController.text,
-                      passwordController.text,
-                    )) {
-                      Navigator.push(
+                  onPressed: () async {
+                    if (await _loginUser(context)) {
+                      Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const SearchScreen(),
