@@ -28,6 +28,13 @@ class RegistrationScreen extends StatelessWidget {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('OK')));
+        // После успешной регистрации переходим на логин и очищаем поля
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoginScreen(clearFields: true),
+          ),
+        );
         return true;
       } else {
         ScaffoldMessenger.of(

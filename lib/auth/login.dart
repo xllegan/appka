@@ -4,7 +4,8 @@ import '../search.dart';
 import 'registration.dart';
 
 class LoginScreen extends StatelessWidget {
-  LoginScreen({super.key});
+  final bool clearFields;
+  LoginScreen({super.key, this.clearFields = false});
   final TextEditingController nameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
@@ -47,6 +48,10 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (clearFields) {
+      nameController.clear();
+      passwordController.clear();
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Authorization')),
       body: Center(
