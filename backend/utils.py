@@ -1,4 +1,3 @@
-from warnings import deprecated
 from passlib.context import CryptContext
 from datetime import timedelta, datetime, timezone
 from jose import jwt
@@ -13,8 +12,7 @@ ALGORITHM = "HS256"
 
 pwd_context = CryptContext(
     schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt_rounds=12
+    deprecated="auto"
 )
 
 def get_secret_key(key_type: str) -> str:
