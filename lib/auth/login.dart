@@ -16,9 +16,16 @@ class LoginScreen extends StatelessWidget {
 
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.0.2:8000/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'username': username, 'password': password}),
+        Uri.parse('http://10.0.2.2:8000/auth/login'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {
+          'grant_type': 'password',
+          'username': nameController.text,
+          'password': passwordController.text,
+          'scope': '',
+          'client_id': '',
+          'client_secret': '',
+        },
       );
 
       if (response.statusCode == 200) {
