@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import '../search.dart';
 import 'registration.dart';
 
-final TextEditingController nameController = TextEditingController();
-final TextEditingController passwordController = TextEditingController();
-
 class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+  LoginScreen({super.key});
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   Future<bool> _loginUser(BuildContext context) async {
     final username = nameController.text;
@@ -20,8 +18,8 @@ class LoginScreen extends StatelessWidget {
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
           'grant_type': 'password',
-          'username': nameController.text,
-          'password': passwordController.text,
+          'username': username,
+          'password': password,
           'scope': '',
           'client_id': '',
           'client_secret': '',
@@ -29,7 +27,6 @@ class LoginScreen extends StatelessWidget {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('OK')));
@@ -93,7 +90,7 @@ class LoginScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const RegistrationScreen(),
+                        builder: (context) => RegistrationScreen(),
                       ),
                     );
                   },

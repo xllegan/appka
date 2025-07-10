@@ -1,14 +1,14 @@
 import 'package:app/auth/login.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:flutter/material.dart';
-
-final TextEditingController nameController = TextEditingController();
-final TextEditingController passwordController = TextEditingController();
-final TextEditingController repeatPasswordController = TextEditingController();
+import 'dart:convert';
 
 class RegistrationScreen extends StatelessWidget {
-  const RegistrationScreen({super.key});
+  RegistrationScreen({super.key});
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController repeatPasswordController =
+      TextEditingController();
 
   Future<bool> _registerUser(BuildContext context) async {
     final username = nameController.text;
@@ -17,15 +17,14 @@ class RegistrationScreen extends StatelessWidget {
     try {
       final response = await http.post(
         Uri.parse('http://10.0.2.2:8000/auth/register'),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {
-          'username': nameController.text,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'login': nameController.text,
           'password': passwordController.text,
-        },
+        }),
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('OK')));
@@ -33,7 +32,7 @@ class RegistrationScreen extends StatelessWidget {
       } else {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error: ${response.body}')));
+        ).showSnackBar(SnackBar(content: Text('${response.body}')));
         return false;
       }
     } catch (e) {
@@ -101,9 +100,7 @@ class RegistrationScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const LoginScreen(),
-                      ),
+                      MaterialPageRoute(builder: (context) => LoginScreen()),
                     );
                   },
                   child: const Text(
