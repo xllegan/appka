@@ -2,8 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.database import engine, Base
-from backend.auth import router as auth_router
+from .database import engine, Base
+from .auth import router as auth_router
 
 app = FastAPI(
     title="'Appka' API",
@@ -21,7 +21,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/auth")
 
-@asynccontextmanager
-async def init_db():
+@app.on_event("startup")
+async def on_startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
