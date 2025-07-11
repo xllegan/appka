@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:intl/intl.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -35,6 +36,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isLoading = false;
   String _response = "";
   final List<Map<String, dynamic>> _conversationHistory = [];
+  final List<Map<String, dynamic>> _queryHistory = [];
 
   Future<void> _sendMessage() async {
     final message = _inputController.text.trim();
@@ -49,11 +51,17 @@ class _SearchScreenState extends State<SearchScreen> {
       const apiKey = "nXS8Ypi7ckXDniw6LzqssYydlizcaM1R";
       const apiUrl = "https://api.mistral.ai/v1/chat/completions";
 
-      // Добавляем новое сообщение в историю
+      final queryData = {
+        'query': message,
+        'time': DateFormat('HH:mm dd.MM.yyyy').format(DateTime.now()),
+        'response': '',
+      };
+      _queryHistory.insert(0, queryData);
+
       _conversationHistory.add({"role": "user", "content": message});
 
       final response = await http.post(
-        Uri.parse("https://api.mistral.ai/v1/chat/completions"),
+        Uri.parse(apiUrl),
         headers: {
           "Authorization": "Bearer $apiKey",
           "Content-Type": "application/json",
@@ -61,17 +69,11 @@ class _SearchScreenState extends State<SearchScreen> {
         body: jsonEncode({
           "model": "mistral-medium-latest",
           "messages": [
-            {
-              "role": "system",
-              "content": systemPrompt
-            },
-            {
-              "role": "user",
-              "content": _inputController.text
-            }
+            {"role": "system", "content": systemPrompt},
+            {"role": "user", "content": message},
           ],
           "temperature": 0.3,
-          "max_tokens": 100,
+          "max_tokens": 300,
           "top_p": 0.5
         }),
       );
@@ -83,6 +85,7 @@ class _SearchScreenState extends State<SearchScreen> {
         setState(() {
           _response = assistantReply;
           _conversationHistory.add({"role": "assistant", "content": assistantReply});
+          queryData['response'] = assistantReply; // Обновляем историю с ответом
         });
       } else {
         throw Exception("API Error: ${response.statusCode}");
@@ -96,10 +99,59 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  void _showHistoryDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('История запросов'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: _queryHistory.length,
+            itemBuilder: (ctx, index) {
+              final item = _queryHistory[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  title: Text(item['query']),
+                  subtitle: Text(item['time']),
+                  onTap: () {
+                    setState(() {
+                      _inputController.text = item['query'];
+                      _response = item['response'];
+                    });
+                    Navigator.pop(ctx);
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Закрыть'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Mistral AI Chat')),
+      appBar: AppBar(
+        title: const Text('Mistral AI Chat'),
+        actions: [
+          if (_queryHistory.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.history),
+              onPressed: () => _showHistoryDialog(context),
+              tooltip: 'История запросов',
+            ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
