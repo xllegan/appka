@@ -15,3 +15,6 @@ class UserAlreadyExists(Exception):
 
 class UserNotFound(Exception):
     """User with some id not found"""
+
+class APIKeyNotFound(Exception):
+    """API Key not found"""
