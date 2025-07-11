@@ -10,13 +10,35 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  final String systemPrompt = """
+    Ты - профессиональный медицинский помощник. Отвечай строго в следующем формате:
+    
+    Диагноз
+    [Краткое описание предполагаемого диагноза]
+    
+    Рекомендации
+    1. Препараты:
+       - [Название]: [Дозировка] ([Форма выпуска])
+       - *Примечание*: [Особенности применения]
+    
+    2. Действия:
+       - [Шаг 1]
+       - [Шаг 2]
+    
+    3. Когда обратиться к врачу:
+       - [Симптомы, требующие срочной консультации]
+    
+    Отвечай только на медицинские темы. На другие вопросы отвечай: "Я могу помочь только с медицинскими вопросами".
+    """;
+
   final TextEditingController _inputController = TextEditingController();
   bool _isLoading = false;
   String _response = "";
-  final List<Map<String, String>> _history = [];
+  final List<Map<String, dynamic>> _conversationHistory = [];
 
-  Future<void> _fetchResponse(String text) async {
-    if (text.trim().isEmpty) return;
+  Future<void> _sendMessage() async {
+    final message = _inputController.text.trim();
+    if (message.isEmpty) return;
 
     setState(() {
       _isLoading = true;
@@ -24,186 +46,95 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      const apiKey = "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";
-      const apiUrl =
-          "https://router.huggingface.co/fireworks-ai/inference/v1/chat/completions";
+      const apiKey = "nXS8Ypi7ckXDniw6LzqssYydlizcaM1R";
+      const apiUrl = "https://api.mistral.ai/v1/chat/completions";
+
+      // Добавляем новое сообщение в историю
+      _conversationHistory.add({"role": "user", "content": message});
 
       final response = await http.post(
-        Uri.parse(apiUrl),
+        Uri.parse("https://api.mistral.ai/v1/chat/completions"),
         headers: {
           "Authorization": "Bearer $apiKey",
           "Content-Type": "application/json",
         },
         body: jsonEncode({
+          "model": "mistral-medium-latest",
           "messages": [
             {
               "role": "system",
-              "content":
-              "Ты медицинский помощник. Дай список препаратов с дозировками в виде массива. "
-                  "Отвечай на русском языке.",
+              "content": systemPrompt
             },
-            {"role": "user", "content": text},
+            {
+              "role": "user",
+              "content": _inputController.text
+            }
           ],
-          "model": "accounts/fireworks/models/deepseek-r1-0528",
-          "temperature": 0.7,
+          "temperature": 0.3,
+          "max_tokens": 100,
+          "top_p": 0.5
         }),
       );
 
-      final data = jsonDecode(response.body);
-      final result = data["choices"][0]["message"]["content"];
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final assistantReply = data['choices'][0]['message']['content'];
 
-      setState(() {
-        _response = result;
-        _history.insert(0, {
-          'query': text,
-          'response': result,
-          'time': DateTime.now().toString().substring(0, 16),
+        setState(() {
+          _response = assistantReply;
+          _conversationHistory.add({"role": "assistant", "content": assistantReply});
         });
-      });
+      } else {
+        throw Exception("API Error: ${response.statusCode}");
+      }
     } catch (e) {
       setState(() {
-        _response =
-        "Ошибка соединения. Пожалуйста, проверьте интернет и попробуйте снова.\n\n$e";
+        _response = "Error: ${e.toString()}";
       });
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  void _clearHistory() {
-    setState(() {
-      _history.clear();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Медицинский советник'),
-        actions: [
-          if (_history.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.history),
-              onPressed: () => _showHistoryDialog(context),
-            ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Поле ввода
-            TextField(
-              controller: _inputController,
-              decoration: InputDecoration(
-                labelText: 'Опишите симптомы или заболевание',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: _isLoading
-                      ? null
-                      : () => _fetchResponse(_inputController.text),
-                ),
-              ),
-              maxLines: 3,
-              onSubmitted: (_) => _fetchResponse(_inputController.text),
-            ),
-            const SizedBox(height: 16),
-
-            // Кнопка поиска
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: _isLoading
-                    ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-                    : const Icon(Icons.medical_services),
-                label: Text(
-                  _isLoading ? 'Обработка запроса...' : 'Получить рекомендации',
-                ),
-                onPressed: _isLoading
-                    ? null
-                    : () => _fetchResponse(_inputController.text),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Результаты
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[200]!),
-                ),
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _response.isEmpty
-                    ? const Center(
-                  child: Text(
-                    'Введите симптомы для получения рекомендаций',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                )
-                    : Markdown(
-                  data: _response,
-                  styleSheet: MarkdownStyleSheet(
-                    p: const TextStyle(fontSize: 16),
-                    h2: TextStyle(
-                      fontSize: 18,
-                      color: Theme.of(context).primaryColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    listBullet: const TextStyle(fontSize: 16),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Очистить историю',
-        onPressed: _clearHistory,
-        child: const Icon(Icons.delete),
-      ),
-    );
-  }
-
-  void _showHistoryDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('История запросов'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: _history.length,
-            itemBuilder: (ctx, i) => Card(
-              child: ListTile(
-                title: Text(_history[i]['query']!),
-                subtitle: Text(
-                  _history[i]['time']!,
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                onTap: () {
-                  setState(() => _response = _history[i]['response']!);
-                  Navigator.pop(ctx);
-                },
-              ),
+      appBar: AppBar(title: const Text('Mistral AI Chat')),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: _conversationHistory.length,
+              itemBuilder: (context, index) {
+                final message = _conversationHistory[index];
+                return ListTile(
+                  title: Text(message['content']),
+                  subtitle: Text(message['role']),
+                );
+              },
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Закрыть'),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _inputController,
+                    decoration: const InputDecoration(
+                      hintText: "Type your message...",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: _isLoading
+                      ? const CircularProgressIndicator()
+                      : const Icon(Icons.send),
+                  onPressed: _isLoading ? null : _sendMessage,
+                ),
+              ],
+            ),
           ),
         ],
       ),
