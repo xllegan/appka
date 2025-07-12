@@ -5,33 +5,20 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final String authToken;
+  final String baseUrl;
+
+  const SearchScreen({
+    super.key,
+    required this.authToken,
+    required this.baseUrl,
+  });
+
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final String systemPrompt = """
-    Ты - профессиональный медицинский помощник. Отвечай строго в следующем формате:
-    
-    Диагноз
-    [Краткое описание предполагаемого диагноза]
-    
-    Рекомендации
-    1. Препараты:
-       - [Название]: [Дозировка] ([Форма выпуска])
-       - *Примечание*: [Особенности применения]
-    
-    2. Действия:
-       - [Шаг 1]
-       - [Шаг 2]
-    
-    3. Когда обратиться к врачу:
-       - [Симптомы, требующие срочной консультации]
-    
-    Отвечай только на медицинские темы. На другие вопросы отвечай: "Я могу помочь только с медицинскими вопросами".
-    """;
-
   final TextEditingController _inputController = TextEditingController();
   bool _isLoading = false;
   String _response = "";
@@ -44,55 +31,46 @@ class _SearchScreenState extends State<SearchScreen> {
 
     setState(() {
       _isLoading = true;
-      _response = "";
+      _response = "Отправка запроса...";
     });
 
     try {
-      const apiKey = "nXS8Ypi7ckXDniw6LzqssYydlizcaM1R";
-      const apiUrl = "https://api.mistral.ai/v1/chat/completions";
-
-      final queryData = {
-        'query': message,
-        'time': DateFormat('HH:mm dd.MM.yyyy').format(DateTime.now()),
-        'response': '',
-      };
-      _queryHistory.insert(0, queryData);
-
-      _conversationHistory.add({"role": "user", "content": message});
-
       final response = await http.post(
-        Uri.parse(apiUrl),
+        Uri.parse('${widget.baseUrl}/ai/chat'),
         headers: {
-          "Authorization": "Bearer $apiKey",
           "Content-Type": "application/json",
+          "Authorization": "Bearer ${widget.authToken}",
+          "accept": "application/json",
         },
-        body: jsonEncode({
-          "model": "mistral-medium-latest",
-          "messages": [
-            {"role": "system", "content": systemPrompt},
-            {"role": "user", "content": message},
-          ],
-          "temperature": 0.3,
-          "max_tokens": 300,
-          "top_p": 0.5
-        }),
-      );
+        body: jsonEncode({"message": message}),
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final assistantReply = data['choices'][0]['message']['content'];
-
         setState(() {
-          _response = assistantReply;
-          _conversationHistory.add({"role": "assistant", "content": assistantReply});
-          queryData['response'] = assistantReply; // Обновляем историю с ответом
+          _response = data['response'] ?? "Пустой ответ от сервера";
+          _conversationHistory.addAll([
+            {"role": "user", "content": message},
+            {"role": "assistant", "content": data['response']}
+          ]);
+
+          _queryHistory.add({
+            'query': message,
+            'response': data['response'],
+            'time': DateFormat('HH:mm').format(DateTime.now()),
+          });
         });
+      } else if (response.statusCode == 401) {
+        setState(() {
+          _response = "Ошибка: Требуется повторная авторизация";
+        });
+        // Можно добавить автоматический переход на экран логина
       } else {
-        throw Exception("API Error: ${response.statusCode}");
+        throw Exception("Ошибка API: ${response.statusCode}\n${response.body}");
       }
     } catch (e) {
       setState(() {
-        _response = "Error: ${e.toString()}";
+        _response = "Ошибка: ${e.toString()}";
       });
     } finally {
       setState(() => _isLoading = false);
@@ -142,7 +120,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mistral AI Chat'),
+        title: const Text('AI Chat'),
         actions: [
           if (_queryHistory.isNotEmpty)
             IconButton(
@@ -155,15 +133,13 @@ class _SearchScreenState extends State<SearchScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              itemCount: _conversationHistory.length,
-              itemBuilder: (context, index) {
-                final message = _conversationHistory[index];
-                return ListTile(
-                  title: Text(message['content']),
-                  subtitle: Text(message['role']),
-                );
-              },
+            child: Markdown(
+              data: _response.isNotEmpty
+                  ? _response
+                  : _isLoading
+                  ? "Загрузка..."
+                  : "Здесь будет ответ...",
+              padding: const EdgeInsets.all(16),
             ),
           ),
           Padding(
@@ -174,9 +150,10 @@ class _SearchScreenState extends State<SearchScreen> {
                   child: TextField(
                     controller: _inputController,
                     decoration: const InputDecoration(
-                      hintText: "Type your message...",
+                      hintText: "Введите ваше сообщение...",
                       border: OutlineInputBorder(),
                     ),
+                    onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
                 IconButton(

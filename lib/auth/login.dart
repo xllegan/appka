@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../search.dart';
 import 'registration.dart';
+import 'dart:convert';
 
 class LoginScreen extends StatelessWidget {
   final bool clearFields;
@@ -9,7 +10,7 @@ class LoginScreen extends StatelessWidget {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  Future<bool> _loginUser(BuildContext context) async {
+  Future<Map<String, dynamic>?> _loginUser(BuildContext context) async {
     final username = nameController.text;
     final password = passwordController.text;
 
@@ -28,21 +29,25 @@ class LoginScreen extends StatelessWidget {
       );
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('OK')));
-        return true;
+        final responseData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Успешный вход!')),
+        );
+        return {
+          'access_token': responseData['access_token'],
+          'token_type': responseData['token_type'] ?? 'Bearer',
+        };
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: ${response.body}')));
-        return false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: ${response.body}')),
+        );
+        return null;
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Connection error: $e')));
-      return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка соединения: $e')),
+      );
+      return null;
     }
   }
 
@@ -53,7 +58,7 @@ class LoginScreen extends StatelessWidget {
       passwordController.clear();
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('Authorization')),
+      appBar: AppBar(title: const Text('Авторизация')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -67,25 +72,24 @@ class LoginScreen extends StatelessWidget {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15.0),
                   ),
-                  hintText: 'Username',
+                  hintText: 'Имя пользователя',
                 ),
                 controller: nameController,
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: TextField(
+                obscureText: true,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15.0),
                   ),
-                  hintText: 'Password',
+                  hintText: 'Пароль',
                 ),
                 controller: passwordController,
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.only(),
               child: Align(
@@ -100,13 +104,12 @@ class LoginScreen extends StatelessWidget {
                     );
                   },
                   child: const Text(
-                    'Registration',
+                    'Регистрация',
                     style: TextStyle(color: Colors.blue, fontSize: 16),
                   ),
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
               child: SizedBox(
@@ -122,16 +125,20 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ),
                   onPressed: () async {
-                    if (await _loginUser(context)) {
+                    final authData = await _loginUser(context);
+                    if (authData != null) {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const SearchScreen(),
+                          builder: (context) => SearchScreen(
+                            authToken: authData['access_token'],
+                            baseUrl: 'http://10.0.2.2:8000',
+                          ),
                         ),
                       );
                     }
                   },
-                  child: const Text('Login'),
+                  child: const Text('Войти'),
                 ),
               ),
             ),
@@ -140,8 +147,4 @@ class LoginScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-bool authCheck(String username, String password) {
-  return password == "123";
 }
