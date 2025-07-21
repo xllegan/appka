@@ -3,7 +3,7 @@ from datetime import timedelta, datetime, timezone
 from jose import jwt
 import os
 
-from backend.exceptions import SecretKeyNotFound, InvalidSecretKey, InvalidKeyType
+from .exceptions import SecretKeyNotFound, InvalidSecretKey, InvalidKeyType
 
 ACCESS_TOKEN_EXPIRES_MINUTES = 30
 REFRESH_TOKEN_EXPIRES_DAYS = 30

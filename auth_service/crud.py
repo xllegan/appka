@@ -1,11 +1,11 @@
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from backend.database import AsyncSession
-from backend.models import User
-from backend.schemas import UserCreate
-from backend.utils import hash_password
-from backend.exceptions import UserAlreadyExists, UserNotFound
+from .database import AsyncSession
+from .models import User
+from .schemas import UserCreate
+from .utils import hash_password
+from .exceptions import UserAlreadyExists, UserNotFound
 
 
 async def get_user_by_login(session: AsyncSession, login: str) -> User | None:

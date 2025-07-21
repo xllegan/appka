@@ -1,19 +1,20 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from mistralai import Mistral
-from backend.dependencies import get_current_user
-from backend.models import User
-from backend.exceptions import APIKeyNotFound
-from typing import Optional, List, Dict, Any
+from dotenv import load_dotenv
+from typing import Optional, Dict
 
-router = APIRouter(tags=["AI"])
+app = FastAPI(title="AI Service")
+load_dotenv()
 
-PROMPT = os.getenv("PROMPT")
+PROMPT_PATH = os.path.join(os.path.dirname(__file__), "prompt.txt")
+with open(PROMPT_PATH, "r", encoding="utf-8") as f:
+    PROMPT = f.read()
 
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 if not MISTRAL_API_KEY:
-    raise APIKeyNotFound("MISTRAL_API_KEY not found in environment variables")
+    raise RuntimeError("MISTRAL_API_KEY not found in environment variables")
 
 client = Mistral(api_key=MISTRAL_API_KEY)
 
@@ -34,11 +35,8 @@ class AIResponse(BaseModel):
     model: str
     usage: Optional[dict] = None
 
-@router.post("/chat", response_model=AIResponse)
-async def chat_with_ai(
-    request: AIRequest,
-    current_user: User = Depends(get_current_user)
-):
+@app.post("/chat", response_model=AIResponse)
+async def chat_with_ai(request: AIRequest):
     try:
         messages = []
         if request.system_prompt:
@@ -50,7 +48,6 @@ async def chat_with_ai(
             "messages": messages,
             "temperature": request.temperature,
         }
-        
         if request.max_tokens is not None:
             chat_params["max_tokens"] = request.max_tokens
         if request.top_p is not None:
@@ -79,11 +76,15 @@ async def chat_with_ai(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка AI API: {str(e)}")
 
-@router.get("/models")
-async def get_available_models(current_user: User = Depends(get_current_user)):
+@app.get("/models")
+async def get_available_models():
     try:
         models = client.models.list()
         return {"models": [model.id for model in models.data]}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка получения моделей: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Ошибка получения моделей: {str(e)}")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("ai:app", host="0.0.0.0", port=8001, reload=True) 
     

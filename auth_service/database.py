@@ -5,7 +5,7 @@ from sqlalchemy.orm import DeclarativeBase
 import os
 from dotenv import load_dotenv
 
-from backend.exceptions import DataBaseURLNotFound
+from .exceptions import DataBaseURLNotFound
 
 load_dotenv()
 DATABASE_URL = os.getenv("DB_URL")

@@ -3,13 +3,13 @@ from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.crud import create_user, get_user_by_login, update_refresh_token
-from backend.database import get_db
-from backend.dependencies import get_current_user
-from backend.exceptions import UserAlreadyExists
-from backend.schemas import UserResponse, UserCreate, TokenPair, RefreshToken
-from backend.utils import verify_password, create_access_token, create_refresh_token, decode_refresh_token
-from backend.models import User
+from .crud import create_user, get_user_by_login, update_refresh_token
+from .database import get_db
+from .dependencies import get_current_user
+from .exceptions import UserAlreadyExists
+from .schemas import UserResponse, UserCreate, TokenPair, RefreshToken
+from .utils import verify_password, create_access_token, create_refresh_token, decode_refresh_token
+from .models import User
 
 router = APIRouter(tags=["Authentication"])
 
