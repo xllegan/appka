@@ -61,26 +61,101 @@ Android/iOS Cross-platform
 
 ## 🚀 Quick Start
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/ai-health-assistant.git
-   cd ai-health-assistant
-   ```
+### 1. Clone the repository
+```bash
+git clone https://github.com/your-username/ai-health-assistant.git
+cd ai-health-assistant
+```
 
-2. **Setup backend**
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   # Configure .env file with MISTRAL_API_KEY
-   uvicorn main:app --reload
-   ```
+### 2. Backend Setup
 
-3. **Run frontend**
-   ```bash
-   cd frontend
-   flutter pub get
-   flutter run
-   ```
+The backend consists of two microservices: `auth_service` and `ai_service`.
+
+#### Auth Service Setup
+```bash
+cd appka/auth_service
+
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Configure environment variables
+cp .env.example .env
+# Edit .env and set:
+# - DB_URL
+# - SECRET_KEY_ACCESS
+# - SECRET_KEY_REFRESH
+```
+
+#### AI Service Setup
+```bash
+cd appka/ai_service
+
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Configure environment variables
+cp .env.example .env
+# Edit .env and set:
+# - MISTRAL_API_KEY
+
+# The prompt.txt file should already exist in the ai_service directory
+# You can edit it to customize AI behavior
+```
+
+### 3. Running the Backend
+
+You need to run both services in separate terminal windows.
+
+#### Start Auth Service
+```bash
+cd appka
+source auth_service/venv/bin/activate
+uvicorn auth_service.main:app --reload --port 8000
+```
+
+#### Start AI Service
+```bash
+cd appka
+source ai_service/venv/bin/activate
+uvicorn ai_service.ai:app --reload --port 8001
+```
+
+### 4. API Documentation
+- Auth Service Swagger UI: http://localhost:8000/docs
+- AI Service Swagger UI: http://localhost:8001/docs
+
+### 5. Run Frontend
+```bash
+cd frontend
+flutter pub get
+flutter run
+```
+
+---
+
+## 🔑 Environment Variables
+
+### Auth Service (.env)
+```
+DB_URL=postgresql+asyncpg://user:password@localhost:5432/dbname
+SECRET_KEY_ACCESS=your-secret-key-min-32-chars
+SECRET_KEY_REFRESH=another-secret-key-min-32-chars
+```
+
+### AI Service (.env)
+```
+MISTRAL_API_KEY=your-mistral-api-key
+```
 
 ---
 
